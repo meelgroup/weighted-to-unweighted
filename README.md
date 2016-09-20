@@ -6,7 +6,7 @@ invokes SharpSAT to perform unweighted counting
 For more details on counting algorithm, please visit: http://www.cs.rice.edu/~kgm2/research.html
 
 ### Licensing ###
-Please see the file `LICENSE-MIT`.
+Please see the file `LICENSE-LGPL`.
 
 ### Contributors ###
 
