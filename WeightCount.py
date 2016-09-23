@@ -176,17 +176,15 @@ if __name__ == '__main__':
     timeout = args.timeout
     runIndex = args.runIndex
     inputFile = args.inputFile
-    tmpDir = os.getenv("TMPDIR","../temp")
+    tmpDir = os.getenv("TMPDIR","temp")
     
     #initialization
     ensureDirectory(tmpDir+'/')
-    ensureDirectory('../EasyLog/')
-    ensureDirectory('../EasyLog/logging/')
-    ensureDirectory('../EasyLog/results/')
+    ensureDirectory('Logs/')
     
     initialFileSuffix = inputFile.split('/')[-1][:-4]
-    outputFile = '../EasyLog/results/'+str(initialFileSuffix)+'_'+str(runIndex)+'.txt'
-    logFile = '../EasyLog/logging/'+str(initialFileSuffix)+'_'+str(runIndex)+'.txt'
+    outputFile = tmpDir+'/'+str(initialFileSuffix)+'_'+str(runIndex)+'.txt'
+    logFile = 'Logs/'+str(initialFileSuffix)+'_'+str(runIndex)+'.txt'
     outCNFFile = tmpDir+'/'+str(initialFileSuffix)+'_'+str(runIndex)+'.cnf'
     tempCNFFile = tmpDir+'/'+str(initialFileSuffix)+'_temp_'+str(runIndex)+'.cnf'
     startTime = time.time()
@@ -203,7 +201,7 @@ if __name__ == '__main__':
     os.system(cmd)
     endTime = time.time()
     
-    writeStr += 'ExactCount:sharpSAT::'+str(endTime-startTime)+':0\n'
+    writeStr = 'ExactCount:sharpSAT::'+str(endTime-startTime)+':0\n'
     f = open(logFile,'a')
     f.write(writeStr)
     f.close()
