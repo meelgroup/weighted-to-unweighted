@@ -206,19 +206,19 @@ def ensureDirectory(path):
 ####################################
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--precision", help="Precision (value of m)", type=int)
+    parser.add_argument("--prec", help="Precision (value of m)", type=int)
     parser.add_argument("--runindex", help="run index", type=int, default=1)
     parser.add_argument("inputFile", help="input File (in Weighted CNF format)")
     parser.add_argument("outputFile", help="output File (in Weighted CNF format)")
     args = parser.parse_args()
 
-    if args.precision is None:
-        print("ERROR: you must give the --precision option, e.g. --precision 7")
+    if args.prec is None:
+        print("ERROR: you must give the --prec option, e.g. --prec 7")
         exit(-1)
 
     startTime = time.time()
     wtVars, origTotalVars, origTotalClaus, totalVars, totalCount, eqWtVars = Transform(
-        args.inputFile, args.outputFile, args.precision, args.runindex)
+        args.inputFile, args.outputFile, args.prec, args.runindex)
     print("Orig vars: %-7d New Vars: %-7d" % (origTotalVars, totalVars))
     print("Time to transform: %0.3f s" % (time.time()-startTime))
     exit(0)
@@ -230,7 +230,7 @@ if __name__ == '__main__':
     with open(logFile, 'w') as f:
         f.write('Transform:::'+str(time.time()-startTime)+':0\n')
         f.write('Stats:'+str(wtVars)+':'+str(origTotalVars)+':'+str(
-            origTotalClaus)+':'+str(totalVars)+':'+str(totalCount)+':'+str(args.precision)+':0')
+            origTotalClaus)+':'+str(totalVars)+':'+str(totalCount)+':'+str(args.prec)+':0')
 
     ####################################
     # BELOW NEEDS TO GO TO A SEPARATE PYTHON CODE
