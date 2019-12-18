@@ -74,8 +74,6 @@ def getCNF(variable, binStr, sign, origTotalVars):
 
 
 def EncodeCNF(variable, kWeight, iWeight, origtotalVars, origtotalClaus, independentSet, precision, runIndex):
-    writeLines = ''
-    totalVars = origtotalVars+iWeight
     totalClaus = origtotalClaus
     independentSet[origtotalVars+1] = 1
     binStr = str(bin(int(kWeight)))[2:-1]
@@ -92,11 +90,13 @@ def EncodeCNF(variable, kWeight, iWeight, origtotalVars, origtotalClaus, indepen
             complementStr += '0'
     origCNFClauses = getCNF(-variable, binStr, True, origtotalVars)
 
+    writeLines = ''
     for i in range(len(origCNFClauses)):
         totalClaus += 1
         for j in range(len(origCNFClauses[i])):
             writeLines += str(origCNFClauses[i][j])+' '
         writeLines += '0\n'
+
     currentVar = -variable
     cnfClauses = getCNF(variable, complementStr, False, origtotalVars)
     for i in range(len(cnfClauses)):
@@ -106,6 +106,8 @@ def EncodeCNF(variable, kWeight, iWeight, origtotalVars, origtotalClaus, indepen
         for j in range(len(cnfClauses[i])):
             writeLines += str(cnfClauses[i][j])+' '
         writeLines += '0\n'
+
+    totalVars = origtotalVars+iWeight
     return writeLines, totalVars, totalClaus, independentSet
 
 
@@ -146,33 +148,33 @@ def Transform(inputFile, outputFile, precision, runIndex):
     for i in range(1, totalVars+1):
         independentSet[i] = 1
 
+    # weight parsing and CNF generation
     origWeight = {}
     indWeight = {}
-    minWeight = 0
     weightLine = ''
-    equalWeightVariables = 0
+    equalWeightVars = 0
     for line in lines:
-        if (line.strip()[:2] == 'w '):
+        if line.strip()[:2] == 'w ':
             fields = line.strip()[2:].split()
             variable = int(fields[0])
-            if (float(fields[1]) < 1):
-                minWeight += math.log(min(float(fields[1]),
-                                          1-float(fields[1])), 2)
-            origWeight[variable] = float(fields[1])
-            kWeight, iWeight = ParseWeights(float(fields[1]), precision)
-            if (not((iWeight == 0 and kWeight == 1) or (float(fields[1]) == 0.5))):
+            val = float(fields[1])
+
+            origWeight[variable] = val
+            kWeight, iWeight = ParseWeights(val, precision)
+            if not((iWeight == 0 and kWeight == 1) or (val == 0.5)):
                 weightLine, totalVars, totalClaus, independentSet = EncodeCNF(
-                    variable, kWeight, iWeight, totalVars, totalClaus, independentSet, precision, runIndex)
+                    variable, kWeight, iWeight, totalVars, totalClaus,
+                    independentSet, precision, runIndex)
             else:
-                if (iWeight == 0):
-                    if (kWeight == 1):
+                if iWeight == 0:
+                    if kWeight == 1:
                         totalClaus += 1
                         weightLine += str(variable)+' 0\n'
-                    if (kWeight == 0):
+                    if kWeight == 0:
                         totalClaus += 1
                         weightLine += str(-variable)+' 0\n'
-                if (float(fields[1]) == 0.5):
-                    equalWeightVariables += 1
+                if val == 0.5:
+                    equalWeightVars += 1
                 indWeight[variable] = 1
             writeLines += weightLine
 
@@ -189,7 +191,7 @@ def Transform(inputFile, outputFile, precision, runIndex):
         f.write('p cnf '+str(totalVars)+' '+str(totalClaus)+' \n')
         f.write(writeLines)
 
-    return wtVarCount, origTotalVars, origTotalClaus, totalVars, totalClaus, minWeight, equalWeightVariables
+    return wtVarCount, origTotalVars, origTotalClaus, totalVars, totalClaus, equalWeightVars
 
 
 def ensureDirectory(path):
@@ -204,28 +206,31 @@ def ensureDirectory(path):
 ####################################
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--precision", help="Precision (value of m)", type=int, default=7)
+    parser.add_argument("--precision", help="Precision (value of m)", type=int)
     parser.add_argument("--runindex", help="run index", type=int, default=1)
     parser.add_argument("inputFile", help="input File (in Weighted CNF format)")
     parser.add_argument("outputFile", help="output File (in Weighted CNF format)")
     args = parser.parse_args()
 
+    if args.precision is None:
+        print("ERROR: you must give the --precision option, e.g. --precision 7")
+        exit(-1)
+
     startTime = time.time()
-    wtVars, origTotalVars, origTotalClaus, totalVars, totalCount, minWeight, eqWtVars = Transform(
+    wtVars, origTotalVars, origTotalClaus, totalVars, totalCount, eqWtVars = Transform(
         args.inputFile, args.outputFile, args.precision, args.runindex)
-    print("Time to transform:", time.time()-startTime)
+    print("Orig vars: %-7d New Vars: %-7d" % (origTotalVars, totalVars))
+    print("Time to transform: %0.3f s" % (time.time()-startTime))
+    exit(0)
 
     ####################################
     # this is some log -- NOT needed.
     initialFileSuffix = args.inputFile.split('/')[-1][:-4]
     logFile = 'Logs/'+str(initialFileSuffix)+'_'+str(args.runindex)+'.txt'
-    writeStr = 'Transform:::'+str(time.time()-startTime)+':0\n'
-    writeStr += 'Stats:'+str(wtVars)+':'+str(origTotalVars)+':'+str(
-        origTotalClaus)+':'+str(totalVars)+':'+str(totalCount)+':'+str(precision)+':0\n'
-    f = open(logFile, 'w')
-    f.write(writeStr)
-    f.close()
-    exit(0)
+    with open(logFile, 'w') as f:
+        f.write('Transform:::'+str(time.time()-startTime)+':0\n')
+        f.write('Stats:'+str(wtVars)+':'+str(origTotalVars)+':'+str(
+            origTotalClaus)+':'+str(totalVars)+':'+str(totalCount)+':'+str(args.precision)+':0')
 
     ####################################
     # BELOW NEEDS TO GO TO A SEPARATE PYTHON CODE
