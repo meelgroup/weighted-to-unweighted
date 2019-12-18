@@ -1,17 +1,8 @@
 # README #
 WeightCount is chain formula based weighted counting algorithm that
-reduces a weighted counting problem to unweighted counting problem and
-invokes SharpSAT to perform unweighted counting 
+reduces a weighted counting problem to unweighted counting problem
 
-For more details on counting algorithm, please visit: http://www.cs.rice.edu/~kgm2/research.html
-
-### Licensing ###
-Please see the file `LICENSE-LGPL`.
+Then, either sharpSAT, D4 or ApproxMC can be used to perform counting and sampling.
 
 ### Contributors ###
-
-(1) Kuldeep Meel (kuldeep@rice.edu)
-
-
-### Contact ###
-* Kuldeep Meel (kuldeep@rice.edu)
+Kuldeep Meel (meel@comp.nus.edu.sg)
