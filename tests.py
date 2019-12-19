@@ -26,23 +26,25 @@ from weightcount import Converter
 
 class TestMyMethods(unittest.TestCase):
     def test_parseWeight(self):
-        c = Converter()
+        c = Converter(precision=10)
 
         # 1 of 4 is 0.25
-        self.assertEqual(c.parseWeight(0.25, 10), (1.0, 2))
+        self.assertEqual(c.parseWeight(0.25), (1.0, 2))
 
         # 1 of 8 is 0.125
-        self.assertEqual(c.parseWeight(0.125, 10), (1.0, 3))
+        self.assertEqual(c.parseWeight(0.125), (1.0, 3))
 
         # 3 of 4 is 0.75
-        self.assertEqual(c.parseWeight(0.75, 10), (3.0, 2))
+        self.assertEqual(c.parseWeight(0.75), (3.0, 2))
 
         # 3 of 4 is 0.75 -- just about enough bits here
-        self.assertEqual(c.parseWeight(0.75, 2), (3.0, 2))
+        c = Converter(precision=2)
+        self.assertEqual(c.parseWeight(0.75), (3.0, 2))
 
         # precision must be at least 2 bits
         with self.assertRaises(AssertionError):
-            c.parseWeight(0.75, 1)
+            c = Converter(precision=1)
+            c.parseWeight(0.75)
 
 
 if __name__ == '__main__':

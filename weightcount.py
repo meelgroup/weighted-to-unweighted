@@ -122,12 +122,8 @@ class Converter:
         return weight, prec
 
     #  The code is straightforward chain formula implementation
-    def transform(self, inputFile, outputFile):
-        # read in input CNF
-        with open(inputFile, 'r') as f:
-            lines = f.readlines()
-
-        writeLines = ''
+    def transform(self, lines, outputFile):
+        origCNFLines = ''
         vars = 0
         cls = 0
         origVars = 0
@@ -151,7 +147,7 @@ class Converter:
                 continue
 
             if line.strip()[0] == 'c':
-                writeLines += str(line)
+                origCNFLines += str(line)
                 continue
 
             if not foundHeader:
@@ -169,7 +165,7 @@ class Converter:
 
             # an actual clause
             if line.strip()[0].isdigit() or line.strip()[0] == '-':
-                writeLines += str(line)
+                origCNFLines += str(line)
 
             # NOTE: we are skipping all the other types of things in the CNF
             #       for example, the weights
@@ -186,8 +182,7 @@ class Converter:
 
         # weight parsing and CNF generation
         origWeight = {}
-        indWeight = {}
-        weightLine = ''
+        transformCNFLines = ''
         for line in lines:
             if line.strip()[:2] == 'w ':
                 fields = line.strip()[2:].split()
@@ -197,38 +192,32 @@ class Converter:
                 # already has been declared, error
                 if var in origWeight:
                     print("ERROR: Variable %d has TWO weights declared" % var)
-                    print("ERROR: Please ONLY declare each variable's weight once")
+                    print("ERROR: Please ONLY declare each variable's weight ONCE")
+                    exit(-1)
 
                 if var not in self.samplSet:
-                    print("ERROR: Variable %d has a weight but is not part of the independent set" % var)
+                    print("ERROR: Variable %d has a weight but is not part of the sampling set" % var)
                     print("ERROR: Either remove the 'c ind' line or add this variable to it")
                     exit(-1)
 
                 origWeight[var] = val
                 self.samplSet[i] = 1
                 kWeight, iWeight = self.parseWeight(val)
-                if not((iWeight == 0 and kWeight == 1) or (val == 0.5)):
-                    weightLine, vars, cls = self.encodeCNF(
-                        var, kWeight, iWeight, vars, cls)
-                else:
+
+                eLines = ''
+                if (iWeight == 0 and kWeight == 1) or (val == 0.5):
+                    # trivial case
                     if iWeight == 0:
+                        cls += 1
                         if kWeight == 1:
-                            cls += 1
-                            weightLine += str(var)+' 0\n'
+                            eLines += str(var)+' 0\n'
                         if kWeight == 0:
-                            cls += 1
-                            weightLine += str(-var)+' 0\n'
-                    indWeight[var] = 1
-                writeLines += weightLine
+                            eLines += str(-var)+' 0\n'
+                else:
+                    # we have to encode to CNF the translation
+                    eLines, vars, cls = self.encodeCNF(var, kWeight, iWeight, vars, cls)
 
-        indWriteStr = 'c ind '
-        count = 0
-        if count % 10 != 0:
-            indWriteStr += '0\n'
-
-        origWtStr = ''
-        for key in origWeight.keys():
-            origWtStr += 'c o '+str(key)+' '+str(origWeight[key])+'\n'
+                transformCNFLines += eLines
 
         with open(outputFile, 'w') as f:
             f.write('p cnf '+str(vars)+' '+str(cls)+' \n')
@@ -237,7 +226,8 @@ class Converter:
                 f.write("%d " % k)
             f.write("0\n")
 
-            f.write(writeLines)
+            f.write(origCNFLines)
+            f.write(transformCNFLines)
 
         return RetVal(origVars, origCls, vars, cls)
 
@@ -258,7 +248,13 @@ if __name__ == '__main__':
 
     startTime = time.time()
     c = Converter(precision=args.prec)
-    ret = c.transform(args.inputFile, args.outputFile)
+
+    # read in input CNF
+    with open(args.inputFile, 'r') as f:
+        lines = f.readlines()
+
+    ret = c.transform(lines, args.outputFile)
+
     # ret looks like:
     #    wtVars
     #    origVars
