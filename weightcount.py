@@ -35,12 +35,11 @@ import argparse
 
 
 class RetVal:
-    def __init__(self, origVars, origCls, vars, totalCount, eqWtVars):
+    def __init__(self, origVars, origCls, vars, totalCount):
         self.origVars = origVars
         self.origCls = origCls
         self.vars = vars
         self.totalCount = totalCount
-        self.eqWtVars = eqWtVars
 
 
 class Converter:
@@ -189,7 +188,6 @@ class Converter:
         origWeight = {}
         indWeight = {}
         weightLine = ''
-        equalWeightVars = 0
         for line in lines:
             if line.strip()[:2] == 'w ':
                 fields = line.strip()[2:].split()
@@ -220,8 +218,6 @@ class Converter:
                         if kWeight == 0:
                             cls += 1
                             weightLine += str(-var)+' 0\n'
-                    if val == 0.5:
-                        equalWeightVars += 1
                     indWeight[var] = 1
                 writeLines += weightLine
 
@@ -238,8 +234,7 @@ class Converter:
             f.write('p cnf '+str(vars)+' '+str(cls)+' \n')
             f.write(writeLines)
 
-        return RetVal(origVars, origCls,
-                      vars, cls, equalWeightVars)
+        return RetVal(origVars, origCls, vars, cls)
 
 
 ####################################
