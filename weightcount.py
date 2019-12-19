@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 Kuldeep S Meel
@@ -232,6 +232,11 @@ class Converter:
 
         with open(outputFile, 'w') as f:
             f.write('p cnf '+str(vars)+' '+str(cls)+' \n')
+            f.write('c ind ')
+            for k in self.samplSet:
+                f.write("%d " % k)
+            f.write("0\n")
+
             f.write(writeLines)
 
         return RetVal(origVars, origCls, vars, cls)
