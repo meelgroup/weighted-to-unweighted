@@ -35,8 +35,7 @@ import argparse
 
 
 class RetVal:
-    def __init__(self, wtVars, origTotalVars, origTotalClaus, totalVars, totalCount, eqWtVars):
-        self.wtVars = wtVars
+    def __init__(self, origTotalVars, origTotalClaus, totalVars, totalCount, eqWtVars):
         self.origTotalVars = origTotalVars
         self.origTotalClaus = origTotalClaus
         self.totalVars = totalVars
@@ -207,9 +206,9 @@ class Converter:
 
         indWriteStr = 'c ind '
         count = 0
-        wtVarCount = 0
-        if (count % 10 != 0):
+        if count % 10 != 0:
             indWriteStr += '0\n'
+
         origWtStr = ''
         for key in origWeight.keys():
             origWtStr += 'c o '+str(key)+' '+str(origWeight[key])+'\n'
@@ -218,7 +217,7 @@ class Converter:
             f.write('p cnf '+str(totalVars)+' '+str(totalCls)+' \n')
             f.write(writeLines)
 
-        return RetVal(wtVarCount, origTotalVars, origTotalClaus, totalVars,
+        return RetVal(origTotalVars, origTotalClaus, totalVars,
                       totalCls, equalWeightVars)
 
 
