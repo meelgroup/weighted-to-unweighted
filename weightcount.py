@@ -57,7 +57,7 @@ def getCNF(variable, binStr, sign, origTotalVars):
     return cnfClauses
 
 
-def EncodeCNF(variable, kWeight, iWeight, origtotalVars, origtotalClaus, independentSet, precision, runIndex):
+def encodeCNF(variable, kWeight, iWeight, origtotalVars, origtotalClaus, independentSet, precision, runIndex):
     totalClaus = origtotalClaus
     independentSet[origtotalVars+1] = 1
     binStr = str(bin(int(kWeight)))[2:-1]
@@ -95,7 +95,7 @@ def EncodeCNF(variable, kWeight, iWeight, origtotalVars, origtotalClaus, indepen
     return writeLines, totalVars, totalClaus, independentSet
 
 
-def ParseWeights(initWeight, precision):
+def parseWeights(initWeight, precision):
     if initWeight == 1:
         return 1, 0
     weight = math.ceil(initWeight*pow(2, precision))
@@ -106,7 +106,7 @@ def ParseWeights(initWeight, precision):
 
 
 #  The code is straightforward chain formula implementation
-def Transform(inputFile, outputFile, precision, runIndex):
+def transform(inputFile, outputFile, precision, runIndex):
     # read in input CNF
     with open(inputFile, 'r') as f:
         lines = f.readlines()
@@ -144,9 +144,9 @@ def Transform(inputFile, outputFile, precision, runIndex):
             val = float(fields[1])
 
             origWeight[variable] = val
-            kWeight, iWeight = ParseWeights(val, precision)
+            kWeight, iWeight = parseWeights(val, precision)
             if not((iWeight == 0 and kWeight == 1) or (val == 0.5)):
-                weightLine, totalVars, totalClaus, independentSet = EncodeCNF(
+                weightLine, totalVars, totalClaus, independentSet = encodeCNF(
                     variable, kWeight, iWeight, totalVars, totalClaus,
                     independentSet, precision, runIndex)
             else:
@@ -194,7 +194,7 @@ if __name__ == '__main__':
         exit(-1)
 
     startTime = time.time()
-    wtVars, origTotalVars, origTotalClaus, totalVars, totalCount, eqWtVars = Transform(
+    wtVars, origTotalVars, origTotalClaus, totalVars, totalCount, eqWtVars = transform(
         args.inputFile, args.outputFile, args.prec, args.runindex)
     print("Orig vars: %-7d New Vars: %-7d" % (origTotalVars, totalVars))
     print("Time to transform: %0.3f s" % (time.time()-startTime))
@@ -205,6 +205,6 @@ if __name__ == '__main__':
     initialFileSuffix = args.inputFile.split('/')[-1][:-4]
     logFile = 'Logs/'+str(initialFileSuffix)+'_'+str(args.runindex)+'.txt'
     with open(logFile, 'w') as f:
-        f.write('Transform:::'+str(time.time()-startTime)+':0\n')
+        f.write('transform:::'+str(time.time()-startTime)+':0\n')
         f.write('Stats:'+str(wtVars)+':'+str(origTotalVars)+':'+str(
             origTotalClaus)+':'+str(totalVars)+':'+str(totalCount)+':'+str(args.prec)+':0')
