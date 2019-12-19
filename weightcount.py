@@ -34,148 +34,192 @@ import time
 import argparse
 
 
-def pushVar(variable, cnfClauses):
-    cnfLen = len(cnfClauses)
-    for i in range(cnfLen):
-        cnfClauses[i].append(variable)
-    return cnfClauses
+class RetVal:
+    def __init__(self, wtVars, origTotalVars, origTotalClaus, totalVars, totalCount, eqWtVars):
+        self.wtVars = wtVars
+        self.origTotalVars = origTotalVars
+        self.origTotalClaus = origTotalClaus
+        self.totalVars = totalVars
+        self.totalCount = totalCount
+        self.eqWtVars = eqWtVars
 
 
-def getCNF(variable, binStr, sign, origTotalVars):
-    cnfClauses = []
-    binLen = len(binStr)
-    cnfClauses.append([binLen+1+origTotalVars])
-    for i in range(binLen):
-        newVar = binLen-i+origTotalVars
-        if sign is False:
-            newVar = -1*(binLen-i+origTotalVars)
-        if binStr[binLen-i-1] == '0':
-            cnfClauses.append([newVar])
-        else:
-            cnfClauses = pushVar(newVar, cnfClauses)
-    pushVar(variable, cnfClauses)
-    return cnfClauses
+class Converter:
 
+    def __init__(self, precision):
+        self.precision = precision
 
-def encodeCNF(variable, kWeight, iWeight, origtotalVars, origtotalClaus, independentSet, precision, runIndex):
-    totalClaus = origtotalClaus
-    independentSet[origtotalVars+1] = 1
-    binStr = str(bin(int(kWeight)))[2:-1]
-    binLen = len(binStr)
-    for i in range(iWeight-binLen-1):
-        binStr = '0'+binStr
-    for i in range(iWeight-1):
-        independentSet[origtotalVars+i+2] = 1
-    complementStr = ''
-    for i in range(len(binStr)):
-        if binStr[i] == '0':
-            complementStr += '1'
-        else:
-            complementStr += '0'
-    origCNFClauses = getCNF(-variable, binStr, True, origtotalVars)
+    def pushVar(self, variable, cnfClauses):
+        cnfLen = len(cnfClauses)
+        for i in range(cnfLen):
+            cnfClauses[i].append(variable)
+        return cnfClauses
 
-    writeLines = ''
-    for i in range(len(origCNFClauses)):
-        totalClaus += 1
-        for j in range(len(origCNFClauses[i])):
-            writeLines += str(origCNFClauses[i][j])+' '
-        writeLines += '0\n'
-
-    currentVar = -variable
-    cnfClauses = getCNF(variable, complementStr, False, origtotalVars)
-    for i in range(len(cnfClauses)):
-        if cnfClauses[i] in origCNFClauses:
-            continue
-        totalClaus += 1
-        for j in range(len(cnfClauses[i])):
-            writeLines += str(cnfClauses[i][j])+' '
-        writeLines += '0\n'
-
-    totalVars = origtotalVars+iWeight
-    return writeLines, totalVars, totalClaus, independentSet
-
-
-def parseWeights(initWeight, precision):
-    if initWeight == 1:
-        return 1, 0
-    weight = math.ceil(initWeight*pow(2, precision))
-    while (weight % 2 == 0):
-        weight = weight/2
-        precision -= 1
-    return weight, precision
-
-
-#  The code is straightforward chain formula implementation
-def transform(inputFile, outputFile, precision, runIndex):
-    # read in input CNF
-    with open(inputFile, 'r') as f:
-        lines = f.readlines()
-
-    writeLines = ''
-    independentSet = {}
-    totalVars = 0
-    origTotalVars = 0
-    origTotalClaus = 0
-    totalClaus = 0
-    for line in lines:
-        if (line.strip()[:2] == 'p '):
-            fields = line.strip().split()
-            totalVars = int(fields[2])
-            totalClaus = int(fields[3])
-            origTotalVars = totalVars
-            origTotalClaus = totalClaus
-            continue
-        if line.strip()[0].isdigit() or line.strip()[0] == 'c' or line.strip()[0] == '-':
-            writeLines += str(line)
-
-    # TODO: parse sampling set up above and use that instead
-    for i in range(1, totalVars+1):
-        independentSet[i] = 1
-
-    # weight parsing and CNF generation
-    origWeight = {}
-    indWeight = {}
-    weightLine = ''
-    equalWeightVars = 0
-    for line in lines:
-        if line.strip()[:2] == 'w ':
-            fields = line.strip()[2:].split()
-            variable = int(fields[0])
-            val = float(fields[1])
-
-            origWeight[variable] = val
-            kWeight, iWeight = parseWeights(val, precision)
-            if not((iWeight == 0 and kWeight == 1) or (val == 0.5)):
-                weightLine, totalVars, totalClaus, independentSet = encodeCNF(
-                    variable, kWeight, iWeight, totalVars, totalClaus,
-                    independentSet, precision, runIndex)
+    def getCNF(self, variable, binStr, sign, origTotalVars):
+        cnfClauses = []
+        binLen = len(binStr)
+        cnfClauses.append([binLen+1+origTotalVars])
+        for i in range(binLen):
+            newVar = binLen-i+origTotalVars
+            if sign is False:
+                newVar = -1*(binLen-i+origTotalVars)
+            if binStr[binLen-i-1] == '0':
+                cnfClauses.append([newVar])
             else:
-                if iWeight == 0:
-                    if kWeight == 1:
-                        totalClaus += 1
-                        weightLine += str(variable)+' 0\n'
-                    if kWeight == 0:
-                        totalClaus += 1
-                        weightLine += str(-variable)+' 0\n'
-                if val == 0.5:
-                    equalWeightVars += 1
-                indWeight[variable] = 1
-            writeLines += weightLine
+                cnfClauses = self.pushVar(newVar, cnfClauses)
+        self.pushVar(variable, cnfClauses)
+        return cnfClauses
 
-    indWriteStr = 'c ind '
-    count = 0
-    wtVarCount = 0
-    if (count % 10 != 0):
-        indWriteStr += '0\n'
-    origWtStr = ''
-    for key in origWeight.keys():
-        origWtStr += 'c o '+str(key)+' '+str(origWeight[key])+'\n'
+    def encodeCNF(self, variable, kWeight, iWeight, origtotalVars, origtotalCls, independentSet):
+        totalCls = origtotalCls
+        independentSet[origtotalVars+1] = 1
+        binStr = str(bin(int(kWeight)))[2:-1]
+        binLen = len(binStr)
+        for i in range(iWeight-binLen-1):
+            binStr = '0'+binStr
+        for i in range(iWeight-1):
+            independentSet[origtotalVars+i+2] = 1
+        complementStr = ''
+        for i in range(len(binStr)):
+            if binStr[i] == '0':
+                complementStr += '1'
+            else:
+                complementStr += '0'
+        origCNFClauses = self.getCNF(-variable, binStr, True, origtotalVars)
 
-    with open(outputFile, 'w') as f:
-        f.write('p cnf '+str(totalVars)+' '+str(totalClaus)+' \n')
-        f.write(writeLines)
+        writeLines = ''
+        for i in range(len(origCNFClauses)):
+            totalCls += 1
+            for j in range(len(origCNFClauses[i])):
+                writeLines += str(origCNFClauses[i][j])+' '
+            writeLines += '0\n'
 
-    return wtVarCount, origTotalVars, origTotalClaus, totalVars, totalClaus, equalWeightVars
+        currentVar = -variable
+        cnfClauses = self.getCNF(variable, complementStr, False, origtotalVars)
+        for i in range(len(cnfClauses)):
+            if cnfClauses[i] in origCNFClauses:
+                continue
+            totalCls += 1
+            for j in range(len(cnfClauses[i])):
+                writeLines += str(cnfClauses[i][j])+' '
+            writeLines += '0\n'
+
+        totalVars = origtotalVars+iWeight
+        return writeLines, totalVars, totalCls, independentSet
+
+    # return the number of bits needed to represent the weight (2nd value returned)
+    # along with the weight:bits ratio
+    def parseWeight(self, initWeight):
+        assert self.precision > 1, "Precision must be at least 2"
+
+        if initWeight == 1:
+            return 1, 0
+        weight = math.ceil(initWeight*pow(2, self.precision))
+
+        prec = self.precision
+        while (weight % 2 == 0):
+            weight = weight/2
+            prec -= 1
+        return weight, prec
+
+    #  The code is straightforward chain formula implementation
+    def transform(self, inputFile, outputFile):
+        # read in input CNF
+        with open(inputFile, 'r') as f:
+            lines = f.readlines()
+
+        writeLines = ''
+        independentSet = {}
+        totalVars = 0
+        origTotalVars = 0
+        origTotalClaus = 0
+        totalCls = 0
+        foundCInd = False
+        for line in lines:
+            if line.strip()[:2] == 'p ':
+                fields = line.strip().split()
+                totalVars = int(fields[2])
+                totalCls = int(fields[3])
+                origTotalVars = totalVars
+                origTotalClaus = totalCls
+                continue
+
+            if len(line) == 0:
+                print("ERROR: The CNF contains an empty line.")
+                print("ERROR: Empty lines are NOT part of the DIMACS specification")
+                print("ERROR: Remove the empty line so we can parse the CNF")
+                exit(-1)
+
+            # parse independent set
+            if line[:5] == "c ind":
+                foundCInd = True
+                for var in line.strip().split()[2:]:
+                    if var == "0":
+                        break
+                    independentSet[int(var)] = 1
+
+            if line.strip()[0].isdigit() or line.strip()[0] == '-' or line.strip()[0] == 'c':
+                writeLines += str(line)
+
+        # TODO: parse sampling set up above and use that instead
+        for i in range(1, totalVars+1):
+            independentSet[i] = 1
+
+        # weight parsing and CNF generation
+        origWeight = {}
+        indWeight = {}
+        weightLine = ''
+        equalWeightVars = 0
+        for line in lines:
+            if line.strip()[:2] == 'w ':
+                fields = line.strip()[2:].split()
+                var = int(fields[0])
+                val = float(fields[1])
+
+                # already has been declared, error
+                if var in origWeight:
+                    print("ERROR: Variable %d has TWO weights declared" % var)
+                    print("ERROR: Please ONLY declare each variable's weight once")
+
+                if foundCInd and var not in independentSet:
+                    print("ERROR: Variable %d has a weight but is not part of the independent set" % var)
+                    print("ERROR: Either remove the 'c ind' line or add this variable to it")
+                    exit(-1)
+
+                origWeight[var] = val
+                independentSet[i] = 1
+                kWeight, iWeight = self.parseWeight(val)
+                if not((iWeight == 0 and kWeight == 1) or (val == 0.5)):
+                    weightLine, totalVars, totalCls, independentSet = self.encodeCNF(
+                        var, kWeight, iWeight, totalVars, totalCls, independentSet)
+                else:
+                    if iWeight == 0:
+                        if kWeight == 1:
+                            totalCls += 1
+                            weightLine += str(var)+' 0\n'
+                        if kWeight == 0:
+                            totalCls += 1
+                            weightLine += str(-var)+' 0\n'
+                    if val == 0.5:
+                        equalWeightVars += 1
+                    indWeight[var] = 1
+                writeLines += weightLine
+
+        indWriteStr = 'c ind '
+        count = 0
+        wtVarCount = 0
+        if (count % 10 != 0):
+            indWriteStr += '0\n'
+        origWtStr = ''
+        for key in origWeight.keys():
+            origWtStr += 'c o '+str(key)+' '+str(origWeight[key])+'\n'
+
+        with open(outputFile, 'w') as f:
+            f.write('p cnf '+str(totalVars)+' '+str(totalCls)+' \n')
+            f.write(writeLines)
+
+        return RetVal(wtVarCount, origTotalVars, origTotalClaus, totalVars,
+                      totalCls, equalWeightVars)
 
 
 ####################################
@@ -184,7 +228,6 @@ def transform(inputFile, outputFile, precision, runIndex):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--prec", help="Precision (value of m)", type=int)
-    parser.add_argument("--runindex", help="run index", type=int, default=1)
     parser.add_argument("inputFile", help="input File (in Weighted CNF format)")
     parser.add_argument("outputFile", help="output File (in Weighted CNF format)")
     args = parser.parse_args()
@@ -194,17 +237,16 @@ if __name__ == '__main__':
         exit(-1)
 
     startTime = time.time()
-    wtVars, origTotalVars, origTotalClaus, totalVars, totalCount, eqWtVars = transform(
-        args.inputFile, args.outputFile, args.prec, args.runindex)
-    print("Orig vars: %-7d New Vars: %-7d" % (origTotalVars, totalVars))
+    c = Converter(precision=args.prec)
+    ret = c.transform(args.inputFile, args.outputFile)
+    # ret looks like:
+    #    wtVars
+    #    origTotalVars
+    #    origTotalClaus
+    #    totalVars
+    #    totalCount
+    #    eqWtVars
+
+    print("Orig vars: %-7d New Vars: %-7d" % (ret.origTotalVars, ret.totalVars))
     print("Time to transform: %0.3f s" % (time.time()-startTime))
     exit(0)
-
-    ####################################
-    # this is some log -- NOT needed.
-    initialFileSuffix = args.inputFile.split('/')[-1][:-4]
-    logFile = 'Logs/'+str(initialFileSuffix)+'_'+str(args.runindex)+'.txt'
-    with open(logFile, 'w') as f:
-        f.write('transform:::'+str(time.time()-startTime)+':0\n')
-        f.write('Stats:'+str(wtVars)+':'+str(origTotalVars)+':'+str(
-            origTotalClaus)+':'+str(totalVars)+':'+str(totalCount)+':'+str(args.prec)+':0')
