@@ -178,13 +178,6 @@ def Transform(inputFile, outputFile, precision, runIndex):
     return wtVarCount, origTotalVars, origTotalClaus, totalVars, totalClaus, equalWeightVars
 
 
-def ensureDirectory(path):
-    d = os.path.dirname(path)
-    if not os.path.exists(d):
-        os.makedirs(d)
-    return
-
-
 ####################################
 # main function
 ####################################
