@@ -47,6 +47,7 @@ class Converter:
 
     def __init__(self, precision):
         self.precision = precision
+        self.samplSet = {}
 
     def pushVar(self, variable, cnfClauses):
         cnfLen = len(cnfClauses)
@@ -69,15 +70,15 @@ class Converter:
         self.pushVar(variable, cnfClauses)
         return cnfClauses
 
-    def encodeCNF(self, variable, kWeight, iWeight, origvars, origcls, indepSet):
+    def encodeCNF(self, variable, kWeight, iWeight, origvars, origcls):
         cls = origcls
-        indepSet[origvars+1] = 1
+        self.samplSet[origvars+1] = 1
         binStr = str(bin(int(kWeight)))[2:-1]
         binLen = len(binStr)
         for i in range(iWeight-binLen-1):
             binStr = '0'+binStr
         for i in range(iWeight-1):
-            indepSet[origvars+i+2] = 1
+            self.samplSet[origvars+i+2] = 1
         complementStr = ''
         for i in range(len(binStr)):
             if binStr[i] == '0':
@@ -104,7 +105,7 @@ class Converter:
             writeLines += '0\n'
 
         vars = origvars+iWeight
-        return writeLines, vars, cls, indepSet
+        return writeLines, vars, cls
 
     # return the number of bits needed to represent the weight (2nd value returned)
     # along with the weight:bits ratio
@@ -128,12 +129,12 @@ class Converter:
             lines = f.readlines()
 
         writeLines = ''
-        indepSet = {}
         vars = 0
+        cls = 0
         origVars = 0
         origCls = 0
-        cls = 0
         foundCInd = False
+        foundHeader = False
         for line in lines:
             if len(line) == 0:
                 print("ERROR: The CNF contains an empty line.")
@@ -147,7 +148,16 @@ class Converter:
                 cls = int(fields[3])
                 origVars = vars
                 origCls = cls
+                foundHeader = True
                 continue
+
+            if line.strip()[0] == 'c':
+                writeLines += str(line)
+                continue
+
+            if not foundHeader:
+                print("ERROR: The 'p cnf VARS CLAUSES' header must be at the top of the CNF!")
+                exit(-1)
 
             # parse independent set
             if line[:5] == "c ind":
@@ -155,14 +165,25 @@ class Converter:
                 for var in line.strip().split()[2:]:
                     if var == "0":
                         break
-                    indepSet[int(var)] = 1
+                    self.samplSet[int(var)] = 1
+                continue
 
-            if line.strip()[0].isdigit() or line.strip()[0] == '-' or line.strip()[0] == 'c':
+            # an actual clause
+            if line.strip()[0].isdigit() or line.strip()[0] == '-':
                 writeLines += str(line)
 
-        # TODO: parse sampling set up above and use that instead
-        for i in range(1, vars+1):
-            indepSet[i] = 1
+            # NOTE: we are skipping all the other types of things in the CNF
+            #       for example, the weights
+            continue
+
+        if not foundHeader:
+            print("ERROR: No header 'p cnf VARS CLAUSES' found in the CNF!")
+            exit(-1)
+
+        # if "c ind" was not found, then all variables are in the sampling set
+        if not foundCInd:
+            for i in range(1, vars+1):
+                self.samplSet[i] = 1
 
         # weight parsing and CNF generation
         origWeight = {}
@@ -180,17 +201,17 @@ class Converter:
                     print("ERROR: Variable %d has TWO weights declared" % var)
                     print("ERROR: Please ONLY declare each variable's weight once")
 
-                if foundCInd and var not in indepSet:
+                if var not in self.samplSet:
                     print("ERROR: Variable %d has a weight but is not part of the independent set" % var)
                     print("ERROR: Either remove the 'c ind' line or add this variable to it")
                     exit(-1)
 
                 origWeight[var] = val
-                indepSet[i] = 1
+                self.samplSet[i] = 1
                 kWeight, iWeight = self.parseWeight(val)
                 if not((iWeight == 0 and kWeight == 1) or (val == 0.5)):
-                    weightLine, vars, cls, indepSet = self.encodeCNF(
-                        var, kWeight, iWeight, vars, cls, indepSet)
+                    weightLine, vars, cls = self.encodeCNF(
+                        var, kWeight, iWeight, vars, cls)
                 else:
                     if iWeight == 0:
                         if kWeight == 1:
