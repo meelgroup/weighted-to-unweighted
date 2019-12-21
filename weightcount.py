@@ -147,14 +147,6 @@ class Converter:
                 foundHeader = True
                 continue
 
-            if line.strip()[0] == 'c':
-                origCNFLines += str(line)
-                continue
-
-            if not foundHeader:
-                print("ERROR: The 'p cnf VARS CLAUSES' header must be at the top of the CNF!")
-                exit(-1)
-
             # parse independent set
             if line[:5] == "c ind":
                 foundCInd = True
@@ -163,6 +155,14 @@ class Converter:
                         break
                     self.samplSet[int(var)] = 1
                 continue
+
+            if line.strip()[0] == 'c':
+                origCNFLines += str(line)
+                continue
+
+            if not foundHeader:
+                print("ERROR: The 'p cnf VARS CLAUSES' header must be at the top of the CNF!")
+                exit(-1)
 
             # an actual clause
             if line.strip()[0].isdigit() or line.strip()[0] == '-':
@@ -202,7 +202,7 @@ class Converter:
                     exit(-1)
 
                 origWeight[var] = val
-                self.samplSet[i] = 1
+                self.samplSet[var] = 1
                 kWeight, iWeight = self.parseWeight(val)
 
                 eLines = ''
@@ -238,7 +238,7 @@ class Converter:
 ####################################
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--prec", help="Precision (value of m)", type=int)
+    parser.add_argument("--prec", help="Precision (value of m)", type=int, default=7)
     parser.add_argument("inputFile", help="input File (in Weighted CNF format)")
     parser.add_argument("outputFile", help="output File (in Weighted CNF format)")
     args = parser.parse_args()
