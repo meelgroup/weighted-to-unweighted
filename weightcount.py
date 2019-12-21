@@ -44,8 +44,9 @@ class RetVal:
 
 class Converter:
 
-    def __init__(self, precision):
+    def __init__(self, precision,verbose=False):
         self.precision = precision
+        self.verbose = verbose
         self.samplSet = {}
 
     def pushVar(self, variable, cnfClauses):
@@ -109,16 +110,27 @@ class Converter:
     # along with the weight:bits ratio
     def parseWeight(self, initWeight):
         assert self.precision > 1, "Precision must be at least 2"
-        assert initWeight > 0, "Weight must not be 0"
+        assert initWeight >= 0.0, "Weight must not be below 0.0"
+        assert initWeight <= 1.0, "Weight must not be above 1.0"
 
-        if initWeight == 1:
-            return 1, 0
-        weight = math.ceil(initWeight*pow(2, self.precision))
+        if self.verbose:
+            print("Query for weight %3.5f" % (initWeight))
 
+        weight = round(initWeight*pow(2, self.precision))
         prec = self.precision
-        while (weight % 2 == 0):
+        if self.verbose:
+            print("weight %3.5f prec %3d" % (weight, prec))
+
+        while weight % 2 == 0 and prec > 0:
             weight = weight/2
             prec -= 1
+
+            if self.verbose:
+                print("weight %3.5f prec %3d" % (weight, prec))
+
+        if self.verbose:
+            print("for %f returning: weight %3.5f prec %3d" % (initWeight, weight, prec))
+
         return weight, prec
 
     #  The code is straightforward chain formula implementation
@@ -213,20 +225,25 @@ class Converter:
                 self.samplSet[var] = 1
                 kWeight, iWeight = self.parseWeight(val)
 
-                eLines = ''
-                if (iWeight == 0 and kWeight == 1) or (val == 0.5):
-                    # trivial case
-                    if iWeight == 0:
-                        cls += 1
-                        if kWeight == 1:
-                            eLines += str(var)+' 0\n'
-                        if kWeight == 0:
-                            eLines += str(-var)+' 0\n'
+                if self.verbose:
+                    print("kweight: %5d iweight: %5d" % (kWeight, iWeight))
+                    print("var: %5d kweight: %5d iweight: %5d" % (var, kWeight, iWeight))
+
+                if (val == 0.5) or (kWeight == 1 and iWeight == 1):
+                    # Trivial case.
+                    # It's either 0.5 exactly or we cannot distinguish
+                    pass
+                elif iWeight == 0:
+                    # for the case where it's effectively 1.0 or 0.0
+                    cls += 1
+                    if kWeight == 1:
+                        transformCNFLines += str(var)+' 0\n'
+                    if kWeight == 0:
+                        transformCNFLines += str(-var)+' 0\n'
                 else:
                     # we have to encode to CNF the translation
                     eLines, vars, cls = self.encodeCNF(var, kWeight, iWeight, vars, cls)
-
-                transformCNFLines += eLines
+                    transformCNFLines += eLines
 
         with open(outputFile, 'w') as f:
             f.write('p cnf '+str(vars)+' '+str(cls)+' \n')
@@ -246,6 +263,9 @@ class Converter:
 ####################################
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--verbose", help="Verbose debug printing", action="store_const",
+        const=True)
     parser.add_argument("--prec", help="Precision (value of m)", type=int, default=7)
     parser.add_argument("inputFile", help="input File (in Weighted CNF format)")
     parser.add_argument("outputFile", help="output File (in Weighted CNF format)")
@@ -256,7 +276,7 @@ if __name__ == '__main__':
         exit(-1)
 
     startTime = time.time()
-    c = Converter(precision=args.prec)
+    c = Converter(precision=args.prec, verbose=args.verbose)
 
     # read in input CNF
     with open(args.inputFile, 'r') as f:
