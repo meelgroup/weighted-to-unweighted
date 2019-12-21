@@ -44,7 +44,7 @@ class RetVal:
 
 class Converter:
 
-    def __init__(self, precision,verbose=False):
+    def __init__(self, precision, verbose=False):
         self.precision = precision
         self.verbose = verbose
         self.samplSet = {}
