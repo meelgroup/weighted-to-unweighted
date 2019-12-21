@@ -27,20 +27,46 @@ from weightcount import Converter
 
 class TestMyMethods(unittest.TestCase):
     def test_parseWeight(self):
-        c = Converter(precision=10)
+        c = Converter(precision=7)
+        c.verbose = True
+        # returns kWeight/iWeight combo
+
+        self.assertEqual(c.parseWeight(1.0), (1, 0))
+        self.assertEqual(c.parseWeight(0.0), (0, 0))
 
         # 1 of 4 is 0.25
-        self.assertEqual(c.parseWeight(0.25), (1.0, 2))
+        self.assertEqual(c.parseWeight(0.25), (1, 2))
 
         # 1 of 8 is 0.125
-        self.assertEqual(c.parseWeight(0.125), (1.0, 3))
+        self.assertEqual(c.parseWeight(0.125), (1, 3))
 
         # 3 of 4 is 0.75
-        self.assertEqual(c.parseWeight(0.75), (3.0, 2))
+        self.assertEqual(c.parseWeight(0.75), (3, 2))
+
+        # close to 0.5 should give me 1,1
+        self.assertEqual(c.parseWeight(0.5), (1, 1))
+        self.assertEqual(c.parseWeight(0.49888), (1, 1))
+        self.assertEqual(c.parseWeight(0.4987), (1, 1))
+        self.assertEqual(c.parseWeight(0.5003), (1, 1))
+
+        # for small precision, we are in a mess
+        c.precision = 3
+        self.assertEqual(c.parseWeight(0.0001), (0, 0))
+        self.assertEqual(c.parseWeight(0.9999), (1, 0))
+
+        # for larger precision, we are good
+        c.precision = 13
+        self.assertNotEquals(c.parseWeight(0.0001), (0, 0))
+        self.assertNotEquals(c.parseWeight(0.9999), (1, 0))
+
+        # for small precision, we should get 1,0 / 0,0 here
+        c.precision = 4
+        self.assertEqual(c.parseWeight(0.9977877), (1, 0))
+        self.assertEqual(c.parseWeight(0.0022123), (0, 0))
 
         # 3 of 4 is 0.75 -- just about enough bits here
         c = Converter(precision=2)
-        self.assertEqual(c.parseWeight(0.75), (3.0, 2))
+        self.assertEqual(c.parseWeight(0.75), (3, 2))
 
         # precision must be at least 2 bits
         with self.assertRaises(AssertionError):
@@ -51,7 +77,7 @@ class TestMyMethods(unittest.TestCase):
         c = Converter(precision=10)
 
         # 2 out of 2**3 (i.e. 0.125)
-        iWeight, kWeight = 2, 3
+        iWeight, kWeight = 1, 1
         var = 1
         origvars = 20
         cls = 20
