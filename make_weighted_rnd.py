@@ -31,7 +31,7 @@ import random
 
 def transform(lines, outfile, perc, ignore_w):
     cnf = []
-    ind = []
+    ind = {}
     ind_found = False
     header_found = False
     maxvar = 0
@@ -50,7 +50,7 @@ def transform(lines, outfile, perc, ignore_w):
                 if v == "0":
                     break
 
-                ind.append(int(v))
+                ind[int(v)] = 1
             continue
 
         if line[:2] == "w ":
@@ -85,8 +85,8 @@ def transform(lines, outfile, perc, ignore_w):
         exit(-1)
 
     if not ind_found:
-        for v in range(maxvar):
-            ind.append(v)
+        for v in range(1, maxvar+1):
+            ind[v] = 1
 
     if maxvar > numvars:
         print("ERROR: You are using a variable, %d, that's larger than what the 'p cnf' header declared")
@@ -98,14 +98,14 @@ def transform(lines, outfile, perc, ignore_w):
     with open(outfile, "w") as f:
         f.write("p cnf %d %d\n" % (numvars, numcls))
         f.write("c ind ")
-        for v in ind:
+        for v,_ in ind.items():
             f.write("%d " % v)
         f.write("0\n")
 
         for c in cnf:
             f.write(c + "\n")
 
-        for v in ind:
+        for v,_ in ind.items():
             w = None
 
             # only add weight to specified percetage
@@ -120,8 +120,8 @@ def transform(lines, outfile, perc, ignore_w):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--perc", help="Percentage of variables to attach non-0.5 weight to",
-        type=int, default=1)
+        "--perc", help="Percentage of variables to attach non-0.5 weight to. Default: 1.0",
+        type=float, default=1.0)
     parser.add_argument(
         "--ignore", help="Ignore original weights", action="store_const", const=True)
     parser.add_argument(
