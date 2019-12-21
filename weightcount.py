@@ -226,8 +226,10 @@ class Converter:
                 kWeight, iWeight = self.parseWeight(val)
 
                 if self.verbose:
-                    print("kweight: %5d iweight: %5d" % (kWeight, iWeight))
-                    print("var: %5d kweight: %5d iweight: %5d" % (var, kWeight, iWeight))
+                    representedW = float(kWeight)/(2**iWeight)
+                    # print("kweight: %5d iweight: %5d" % (kWeight, iWeight))
+                    print("var: %5d orig-weight: %3.6f kweight: %5d iweight: %5d represented-weight: %3.6f"
+                          % (var, val, kWeight, iWeight, representedW))
 
                 if (val == 0.5) or (kWeight == 1 and iWeight == 1):
                     # Trivial case.
