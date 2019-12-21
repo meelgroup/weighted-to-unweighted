@@ -24,6 +24,7 @@
 import unittest
 from weightcount import Converter
 
+
 class TestMyMethods(unittest.TestCase):
     def test_parseWeight(self):
         c = Converter(precision=10)
@@ -45,6 +46,19 @@ class TestMyMethods(unittest.TestCase):
         with self.assertRaises(AssertionError):
             c = Converter(precision=1)
             c.parseWeight(0.75)
+
+    def test_encodeCNF(self):
+        c = Converter(precision=10)
+
+        # 2 out of 2**3 (i.e. 0.125)
+        iWeight, kWeight = 2, 3
+        var = 1
+        origvars = 20
+        cls = 20
+        eLines, vars, cls = c.encodeCNF(var, iWeight, kWeight, origvars, 0)
+        print("%s" % eLines)
+        print("new vars: ", vars-origvars)
+        print("cls: ", cls)
 
 
 if __name__ == '__main__':

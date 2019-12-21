@@ -69,8 +69,7 @@ class Converter:
         self.pushVar(variable, cnfClauses)
         return cnfClauses
 
-    def encodeCNF(self, variable, kWeight, iWeight, origvars, origcls):
-        cls = origcls
+    def encodeCNF(self, variable, kWeight, iWeight, origvars, cls):
         self.samplSet[origvars+1] = 1
         binStr = str(bin(int(kWeight)))[2:-1]
         binLen = len(binStr)
@@ -129,6 +128,7 @@ class Converter:
         cls = 0
         origVars = 0
         origCls = 0
+        maxvar = 0
         foundCInd = False
         foundHeader = False
         for line in lines:
@@ -166,11 +166,19 @@ class Converter:
 
             # an actual clause
             if line.strip()[0].isdigit() or line.strip()[0] == '-':
+                for lit in line.split():
+                    maxvar = max(abs(int(lit)), maxvar)
                 origCNFLines += str(line)
 
             # NOTE: we are skipping all the other types of things in the CNF
             #       for example, the weights
             continue
+
+        if maxvar > vars:
+            print("ERROR: CNF contains var %d but header says we only have %d vars" % (maxvar, vars))
+            exit(-1)
+
+        print("Header says vars: %d  maximum var used: %d" % (vars, maxvar))
 
         if not foundHeader:
             print("ERROR: No header 'p cnf VARS CLAUSES' found in the CNF!")
