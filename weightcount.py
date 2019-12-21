@@ -110,6 +110,7 @@ class Converter:
     # along with the weight:bits ratio
     def parseWeight(self, initWeight):
         assert self.precision > 1, "Precision must be at least 2"
+        assert initWeight > 0, "Weight must not be 0"
 
         if initWeight == 1:
             return 1, 0
