@@ -31,6 +31,7 @@ class TestMyMethods(unittest.TestCase):
         c.verbose = True
         # returns kWeight/iWeight combo
 
+        # trivial cases
         self.assertEqual(c.parseWeight(1.0), (1, 0))
         self.assertEqual(c.parseWeight(0.0), (0, 0))
 
