@@ -71,6 +71,17 @@ class Converter:
         return cnfClauses
 
     def encodeCNF(self, variable, kWeight, iWeight, origvars, cls):
+        if iWeight == 1 and kWeight == 1:
+            return "", origvars, cls
+
+        if iWeight == 0:
+            if kWeight == 0:
+                lines = "-%d 0\n" % variable
+                return lines, origvars, cls+1
+            else:
+                lines = "%d 0\n" % variable
+                return lines, origvars, cls+1
+
         self.samplSet[origvars+1] = 1
         binStr = str(bin(int(kWeight)))[2:-1]
         binLen = len(binStr)
@@ -231,21 +242,9 @@ class Converter:
                     print("var: %5d orig-weight: %3.6f kweight: %5d iweight: %5d represented-weight: %3.6f"
                           % (var, val, kWeight, iWeight, representedW))
 
-                if (val == 0.5) or (kWeight == 1 and iWeight == 1):
-                    # Trivial case.
-                    # It's either 0.5 exactly or we cannot distinguish
-                    pass
-                elif iWeight == 0:
-                    # for the case where it's effectively 1.0 or 0.0
-                    cls += 1
-                    if kWeight == 1:
-                        transformCNFLines += str(var)+' 0\n'
-                    if kWeight == 0:
-                        transformCNFLines += str(-var)+' 0\n'
-                else:
-                    # we have to encode to CNF the translation
-                    eLines, vars, cls = self.encodeCNF(var, kWeight, iWeight, vars, cls)
-                    transformCNFLines += eLines
+                # we have to encode to CNF the translation
+                eLines, vars, cls = self.encodeCNF(var, kWeight, iWeight, vars, cls)
+                transformCNFLines += eLines
 
         with open(outputFile, 'w') as f:
             f.write('p cnf '+str(vars)+' '+str(cls)+' \n')
