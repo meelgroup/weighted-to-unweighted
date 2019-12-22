@@ -25,7 +25,7 @@ import unittest
 import random
 import math
 import decimal
-from weightcount import Converter
+from weighted_to_unweighted import Converter
 
 verbose = False
 
