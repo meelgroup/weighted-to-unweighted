@@ -26,6 +26,8 @@ import random
 import math
 from weightcount import Converter
 
+verbose = False
+
 
 def get_transl_err(prec, w):
     c = Converter(precision=prec)
@@ -38,9 +40,10 @@ def get_transl_err(prec, w):
     cls = 20
     eLines, vars, cls = c.encodeCNF(var, iWeight, kWeight, origvars, 0)
     newvars = vars-origvars
-    print("%s" % eLines)
-    print("new vars: ", newvars)
-    print("cls: ", cls)
+    if verbose:
+        print("%s" % eLines)
+        print("new vars: ", newvars)
+        print("cls: ", cls)
 
     ok = {}
     ba = {}
@@ -130,8 +133,8 @@ class TestMyMethods(unittest.TestCase):
 
         # for larger precision, we are good
         c.precision = 13
-        self.assertNotEquals(c.parseWeight(0.0001), (0, 0))
-        self.assertNotEquals(c.parseWeight(0.9999), (1, 0))
+        self.assertNotEqual(c.parseWeight(0.0001), (0, 0))
+        self.assertNotEqual(c.parseWeight(0.9999), (1, 0))
 
         # for small precision, we should get 1,0 / 0,0 here
         c.precision = 4
@@ -154,11 +157,9 @@ class TestMyMethods(unittest.TestCase):
 
 if __name__ == '__main__':
     random.seed(1)
-
     #get_transl_err(10, 1.0)
     #get_transl_err(10, 0.0)
-    get_transl_err(10, 0.5)
-    exit(0)
+    #get_transl_err(10, 0.5)
 
     total_err = 0
     max_err = 0
@@ -176,6 +177,7 @@ if __name__ == '__main__':
     print("min error:", min_err)
     print("max error:", max_err)
     print("median error:", errs[math.ceil(len(errs)/2)])
-    exit(0)
+    assert max_err < 1/(2**10)
+
 
     unittest.main()
