@@ -22,13 +22,86 @@
 # THE SOFTWARE.
 
 import unittest
+import random
+import math
 from weightcount import Converter
+
+
+def get_transl_err(prec, w):
+    c = Converter(precision=prec)
+
+    # 2 out of 2**3 (i.e. 0.125)
+    iWeight, kWeight = c.parseWeight(w)
+    print("iweight: %3d kweight: %3d prec: %3d w: %3.15f" % (iWeight, kWeight, prec, w))
+    var = 1
+    origvars = 20
+    cls = 20
+    eLines, vars, cls = c.encodeCNF(var, iWeight, kWeight, origvars, 0)
+    newvars = vars-origvars
+    print("%s" % eLines)
+    print("new vars: ", newvars)
+    print("cls: ", cls)
+
+    ok = {}
+    ba = {}
+    ok[True] = 0
+    ok[False] = 0
+    ba[True] = 0
+    ba[False] = 0
+    ok_tot = 0
+    ba_tot = 0
+    for x in range(2**(newvars+1)):
+        setting = {}
+        for i in range(1, newvars+1):
+            setting[origvars+(newvars+1-i)] = bool((x >> i) & 1)
+        setting[var] = bool((x >> 0) & 1)
+        #print(setting)
+
+        overall_val = True
+        for line in eLines.split("\n"):
+            val = False
+            if line == "":
+                continue
+
+            #print("line.split:", line.split())
+            for lit in line.split(" "):
+                lit = int(lit)
+                if lit == 0:
+                    continue
+
+                if lit > 0:
+                    if setting[lit]:
+                        val = True
+
+                if lit < 0:
+                    if not setting[-lit]:
+                        val = True
+
+            #print("val:", val)
+            if not val:
+                overall_val = False
+                break
+
+        #print("overall val:", overall_val)
+        if overall_val:
+            ok[setting[var]] += 1
+            ok_tot += 1
+        else:
+            ba[setting[var]] += 1
+            ba_tot += 1
+
+    print("->OK[true]: %d/%d OK[false] = %d/%d" % (ok[True], ok_tot, ok[False], ok_tot))
+    print("->Diff: %3.10f vs %3.10f" % (w, ok[True]/ok_tot))
+
+    error = abs(w-ok[True]/ok_tot)
+    print("->Diff: %3.10f" % (error))
+    return error
 
 
 class TestMyMethods(unittest.TestCase):
     def test_parseWeight(self):
         c = Converter(precision=7)
-        c.verbose = True
+        c.verbose = False
         # returns kWeight/iWeight combo
 
         # trivial cases
@@ -75,18 +148,34 @@ class TestMyMethods(unittest.TestCase):
             c.parseWeight(0.75)
 
     def test_encodeCNF(self):
-        c = Converter(precision=10)
-
-        # 2 out of 2**3 (i.e. 0.125)
-        iWeight, kWeight = 1, 1
-        var = 1
-        origvars = 20
-        cls = 20
-        eLines, vars, cls = c.encodeCNF(var, iWeight, kWeight, origvars, 0)
-        print("%s" % eLines)
-        print("new vars: ", vars-origvars)
-        print("cls: ", cls)
+        self.assertEqual(get_transl_err(10, 0.0), 0)
+        self.assertEqual(get_transl_err(10, 1.0), 0)
 
 
 if __name__ == '__main__':
+    random.seed(1)
+
+    #get_transl_err(10, 1.0)
+    #get_transl_err(10, 0.0)
+    get_transl_err(10, 0.5)
+    exit(0)
+
+    total_err = 0
+    max_err = 0
+    min_err = 1.0
+    errs = []
+    for x in range(1000):
+        err = get_transl_err(10, random.uniform(0.0, 1.0))
+        total_err += err
+        errs.append(err)
+        max_err = max(err, max_err)
+        min_err = min(min_err, err)
+
+    errs = sorted(errs)
+    print("avg error:", total_err/1000.0)
+    print("min error:", min_err)
+    print("max error:", max_err)
+    print("median error:", errs[math.ceil(len(errs)/2)])
+    exit(0)
+
     unittest.main()
