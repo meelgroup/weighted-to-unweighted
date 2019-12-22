@@ -135,6 +135,8 @@ class Converter:
 
         weight = initWeight*pow(2, self.precision)
         weight = weight.quantize(decimal.Decimal("1"))
+        # for CEIL, but double the error, set:
+        # weight = weight.quantize(decimal.Decimal("1"), rounding=decimal.ROUND_CEILING)
         weight = int(weight)
         prec = self.precision
         if self.verbose:
