@@ -179,5 +179,4 @@ if __name__ == '__main__':
     print("median error:", errs[math.ceil(len(errs)/2)])
     assert max_err < 1/(2**10)
 
-
     unittest.main()
