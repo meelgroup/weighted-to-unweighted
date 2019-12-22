@@ -24,6 +24,7 @@
 import unittest
 import random
 import math
+import decimal
 from weightcount import Converter
 
 verbose = False
@@ -31,10 +32,11 @@ verbose = False
 
 def get_transl_err(prec, w):
     c = Converter(precision=prec)
+    w = decimal.Decimal(w)
 
     # 2 out of 2**3 (i.e. 0.125)
     iWeight, kWeight = c.parseWeight(w)
-    print("iweight: %3d kweight: %3d prec: %3d w: %3.15f" % (iWeight, kWeight, prec, w))
+    print("iweight: %3d kweight: %3d prec: %3d w: %s" % (iWeight, kWeight, prec, w))
     var = 1
     origvars = 20
     cls = 20
@@ -94,10 +96,11 @@ def get_transl_err(prec, w):
             ba_tot += 1
 
     print("->OK[true]: %d/%d OK[false] = %d/%d" % (ok[True], ok_tot, ok[False], ok_tot))
-    print("->Diff: %3.10f vs %3.10f" % (w, ok[True]/ok_tot))
+    actual_val = decimal.Decimal(ok[True])/decimal.Decimal(ok_tot)
 
-    error = abs(w-ok[True]/ok_tot)
-    print("->Diff: %3.10f" % (error))
+    print("->Diff: %s vs %s" % (w, actual_val))
+    error = (w-actual_val).copy_abs()
+    print("->Diff: %s" % (error))
     return error
 
 
@@ -157,23 +160,27 @@ class TestMyMethods(unittest.TestCase):
 
 if __name__ == '__main__':
     random.seed(1)
+    decimal.getcontext().prec = 200
     #get_transl_err(10, 1.0)
     #get_transl_err(10, 0.0)
     #get_transl_err(10, 0.5)
 
-    total_err = 0
-    max_err = 0
-    min_err = 1.0
+    total_err = decimal.Decimal(0)
+    max_err = decimal.Decimal(0)
+    min_err = decimal.Decimal(1.0)
     errs = []
     for x in range(1000):
-        err = get_transl_err(10, random.uniform(0.0, 1.0))
+        p = 40
+        w = decimal.Decimal(random.randint(0, 10**p))
+        w /= decimal.Decimal(10**p)
+        err = get_transl_err(10, w)
         total_err += err
         errs.append(err)
         max_err = max(err, max_err)
         min_err = min(min_err, err)
 
     errs = sorted(errs)
-    print("avg error:", total_err/1000.0)
+    print("avg error:", total_err/decimal.Decimal(len(errs)))
     print("min error:", min_err)
     print("max error:", max_err)
     print("median error:", errs[math.ceil(len(errs)/2)])

@@ -32,6 +32,7 @@ import os
 import math
 import time
 import argparse
+import decimal
 
 
 class RetVal:
@@ -120,14 +121,21 @@ class Converter:
     # return the number of bits needed to represent the weight (2nd value returned)
     # along with the weight:bits ratio
     def parseWeight(self, initWeight):
+        if type(initWeight) == float or type(initWeight) == str:
+            initWeight = decimal.Decimal(initWeight)
+
+        assert type(initWeight) == decimal.Decimal, "You must pass a float, string or a Decimal"
+
         assert self.precision > 1, "Precision must be at least 2"
-        assert initWeight >= 0.0, "Weight must not be below 0.0"
-        assert initWeight <= 1.0, "Weight must not be above 1.0"
+        assert initWeight >= decimal.Decimal(0.0), "Weight must not be below 0.0"
+        assert initWeight <= decimal.Decimal(1.0), "Weight must not be above 1.0"
 
         if self.verbose:
-            print("Query for weight %3.5f" % (initWeight))
+            print("Query for weight %s" % (initWeight))
 
-        weight = round(initWeight*pow(2, self.precision))
+        weight = initWeight*pow(2, self.precision)
+        weight = weight.quantize(decimal.Decimal("1"))
+        weight = int(weight)
         prec = self.precision
         if self.verbose:
             print("weight %3.5f prec %3d" % (weight, prec))
@@ -219,7 +227,7 @@ class Converter:
             if line.strip()[:2] == 'w ':
                 fields = line.strip()[2:].split()
                 var = int(fields[0])
-                val = float(fields[1])
+                val = decimal.Decimal(fields[1])
 
                 # already has been declared, error
                 if var in origWeight:
@@ -237,9 +245,9 @@ class Converter:
                 kWeight, iWeight = self.parseWeight(val)
 
                 if self.verbose:
-                    representedW = float(kWeight)/(2**iWeight)
+                    representedW = decimal(kWeight)/decimal(2**iWeight)
                     # print("kweight: %5d iweight: %5d" % (kWeight, iWeight))
-                    print("var: %5d orig-weight: %3.6f kweight: %5d iweight: %5d represented-weight: %3.6f"
+                    print("var: %5d orig-weight: %s kweight: %5d iweight: %5d represented-weight: %s"
                           % (var, val, kWeight, iWeight, representedW))
 
                 # we have to encode to CNF the translation
@@ -275,6 +283,8 @@ if __name__ == '__main__':
     if args.prec is None:
         print("ERROR: you must give the --prec option, e.g. --prec 7")
         exit(-1)
+
+    decimal.getcontext().prec = 100
 
     startTime = time.time()
     c = Converter(precision=args.prec, verbose=args.verbose)
