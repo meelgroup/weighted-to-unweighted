@@ -39,7 +39,7 @@ c ind 1 2 3 4 5 6 7 8 9 0
 We can now sample this system using an unweighted sampler, e.g. unigen:
 
 ```
-$ ./unigen b.cnf --sampleout sampl --samples 1000 > /dev/null
+$ ./unigen my-unweighted.cnf --sampleout samples --samples 1000 > /dev/null
 $ cut -d " " -f 1-2 samples | sort | uniq -c
      76 -1 -2
      66 -1 2
