@@ -6,26 +6,28 @@ Let's say we have the following formula:
 
 ```
 $ cat my.cnf
-p cnf 2 0
+p cnf 2 1
+c ind 1 2 0
+1 2 0
 w 1 0.9
 w 2 0.5
 ```
 
-We now run our system:
+We convert this weighted formula to an unweighted formula:
 
 ```
 ./weighted_to_unweighted.py my.cnf my-unweighted.cnf
-Header says vars: 2  maximum var used: 0
-Orig vars: 2       New Vars: 9
-Time to transform: 0.000 s
+Orig vars: 2       Added vars: 7
+The resulting count you have to divide by: 2**7
 ```
 
-Our resulting formula is unweigthed:
+Our resulting formula is correctly unweigthed:
 
 ```
 $ cat my-unweighted.cnf
-p cnf 9 8
+p cnf 9 9
 c ind 1 2 3 4 5 6 7 8 9 0
+1 2 0
 9 8 5 4 3 -1 0
 7 5 4 3 -1 0
 6 5 4 3 -1 0
@@ -36,18 +38,31 @@ c ind 1 2 3 4 5 6 7 8 9 0
 -3 1 0
 ```
 
-We can now sample this system using an unweighted sampler, e.g. unigen:
+we can now count this system using an unweighted counter, e.g. approxmc:
+
+```
+$ ./approxmc my-unweighted
+[...]
+[appmc] FINISHED AppMC T: 0.01 s
+[appmc] Number of solutions is: 62*2**2
+
+$ python
+> 62*2**2/2**7
+1.9375
+```
+
+So the weighted count is 1.937. We can also sample this system using an unweighted sampler, e.g. unigen:
 
 ```
 $ ./unigen my-unweighted.cnf --sampleout samples --samples 1000 > /dev/null
 $ cut -d " " -f 1-2 samples | sort | uniq -c
-     76 -1 -2
-     66 -1 2
-    436 1 -2
-    438 1 2
+55  -1  2
+478  1 -2
+490  1  2
+
 ```
 
-Hence, we sampled the system in a weighted way.
+We sampled the system in a weighted way.
 
 ### Contributors ###
 Kuldeep Meel (meel@comp.nus.edu.sg)

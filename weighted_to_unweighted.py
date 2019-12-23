@@ -305,6 +305,7 @@ if __name__ == '__main__':
     #    totalCount
     #    eqWtVars
 
-    print("Orig vars: %-7d New Vars: %-7d" % (ret.origVars, ret.vars))
+    print("Orig vars: %-7d Added vars: %-7d" % (ret.origVars, ret.vars-ret.origVars))
+    print("The resulting count you have to divide by: 2**%d" % (ret.vars-ret.origVars))
     print("Time to transform: %0.3f s" % (time.time()-startTime))
     exit(0)
