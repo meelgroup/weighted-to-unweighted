@@ -36,15 +36,15 @@ import decimal
 
 
 class RetVal:
-    def __init__(self, origVars, origCls, vars, totalCount):
+    def __init__(self, origVars, origCls, vars, totalCount, div):
         self.origVars = origVars
         self.origCls = origCls
         self.vars = vars
         self.totalCount = totalCount
+        self.div = div
 
 
 class Converter:
-
     def __init__(self, precision, verbose=False):
         self.precision = precision
         self.verbose = verbose
@@ -71,17 +71,17 @@ class Converter:
         self.pushVar(variable, cnfClauses)
         return cnfClauses
 
-    def encodeCNF(self, variable, kWeight, iWeight, origvars, cls):
+    def encodeCNF(self, variable, kWeight, iWeight, origvars, cls, div):
         if iWeight == 1 and kWeight == 1:
-            return "", origvars, cls
+            return "", origvars, cls, div+1
 
         if iWeight == 0:
             if kWeight == 0:
                 lines = "-%d 0\n" % variable
-                return lines, origvars, cls+1
+                return lines, origvars, cls+1, div
             else:
                 lines = "%d 0\n" % variable
-                return lines, origvars, cls+1
+                return lines, origvars, cls+1, div
 
         self.samplSet[origvars+1] = 1
         binStr = str(bin(int(kWeight)))[2:-1]
@@ -116,7 +116,7 @@ class Converter:
             writeLines += '0\n'
 
         vars = origvars+iWeight
-        return writeLines, vars, cls
+        return writeLines, vars, cls, div+iWeight
 
     # return the number of bits needed to represent the weight (2nd value returned)
     # along with the weight:bits ratio
@@ -159,6 +159,7 @@ class Converter:
         origCNFLines = ''
         vars = 0
         cls = 0
+        div = 0
         origVars = 0
         origCls = 0
         maxvar = 0
@@ -230,6 +231,13 @@ class Converter:
                 fields = line.strip()[2:].split()
                 var = int(fields[0])
                 val = decimal.Decimal(fields[1])
+                if val == decimal.Decimal(1):
+                    print("c Skipping line due to val is 1 ", line.strip())
+                    continue
+
+                if var < 0:
+                    print("c Skipping line due to literal <0 ", line.strip())
+                    continue
 
                 # already has been declared, error
                 if var in origWeight:
@@ -247,13 +255,13 @@ class Converter:
                 kWeight, iWeight = self.parseWeight(val)
 
                 if self.verbose:
-                    representedW = decimal(kWeight)/decimal(2**iWeight)
+                    representedW = decimal.Decimal(kWeight)/decimal.Decimal(2**iWeight)
                     # print("kweight: %5d iweight: %5d" % (kWeight, iWeight))
                     print("var: %5d orig-weight: %s kweight: %5d iweight: %5d represented-weight: %s"
                           % (var, val, kWeight, iWeight, representedW))
 
                 # we have to encode to CNF the translation
-                eLines, vars, cls = self.encodeCNF(var, kWeight, iWeight, vars, cls)
+                eLines, vars, cls, div = self.encodeCNF(var, kWeight, iWeight, vars, cls, div)
                 transformCNFLines += eLines
 
         with open(outputFile, 'w') as f:
@@ -266,7 +274,7 @@ class Converter:
             f.write(origCNFLines)
             f.write(transformCNFLines)
 
-        return RetVal(origVars, origCls, vars, cls)
+        return RetVal(origVars, origCls, vars, cls, div)
 
 
 ####################################
@@ -306,6 +314,6 @@ if __name__ == '__main__':
     #    eqWtVars
 
     print("Orig vars: %-7d Added vars: %-7d" % (ret.origVars, ret.vars-ret.origVars))
-    print("The resulting count you have to divide by: 2**%d" % (ret.vars-ret.origVars))
+    print("The resulting count you have to divide by: 2**%d" % ret.div)
     print("Time to transform: %0.3f s" % (time.time()-startTime))
     exit(0)
