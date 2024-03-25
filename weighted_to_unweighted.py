@@ -27,9 +27,6 @@
 # by Supratik Chakraborty, Dror Fried, Kuldeep S. Meel, Moshe Y. Vardi
 # Proc. of IJCAI 2016
 
-import sys
-import os
-import math
 import time
 import argparse
 import decimal
@@ -105,7 +102,6 @@ class Converter:
                 writeLines += str(origCNFClauses[i][j])+' '
             writeLines += '0\n'
 
-        currentVar = -variable
         cnfClauses = self.getCNF(variable, complementStr, False, origvars)
         for i in range(len(cnfClauses)):
             if cnfClauses[i] in origCNFClauses:
@@ -182,15 +178,17 @@ class Converter:
                 continue
 
             # parse independent set
-            if line[:5] == "c ind":
+            if line[:8] == "c p show" or line[:5] == "c ind":
+                if line[:8] == "c p show": start = 8
+                else: start = 5
                 foundCInd = True
-                for var in line.strip().split()[2:]:
+                for var in line.strip().split()[start:]:
                     if var == "0":
                         break
                     self.samplSet[int(var)] = 1
                 continue
 
-            if line.strip()[0] == 'c':
+            if line.strip()[0] == 'c' and line.strip()[:4] != 'c t ' and line.strip()[:4] != 'c p ':
                 origCNFLines += str(line)
                 continue
 
@@ -227,16 +225,15 @@ class Converter:
         origWeight = {}
         transformCNFLines = ''
         for line in lines:
-            if line.strip()[:2] == 'w ':
-                fields = line.strip()[2:].split()
+            if line.strip()[:2] == 'w ' or line.strip()[:10] == 'c p weight':
+                if line.strip()[:2] == 'w ': start = 2
+                else: start = 10
+                fields = line.strip()[start:].split()
                 var = int(fields[0])
                 val = decimal.Decimal(fields[1])
-                if val == decimal.Decimal(1):
-                    print("c Skipping line due to val is 1 ", line.strip())
-                    continue
-
                 if var < 0:
-                    print("c Skipping line due to literal <0 ", line.strip())
+                    if self.verbose:
+                        print("c Skipping line due to literal <0 ", line.strip())
                     continue
 
                 # already has been declared, error
@@ -247,7 +244,7 @@ class Converter:
 
                 if var not in self.samplSet:
                     print("ERROR: Variable %d has a weight but is not part of the sampling set" % var)
-                    print("ERROR: Either remove the 'c ind' line or add this variable to it")
+                    print("ERROR: Either remove the 'c ind'/'c p show' line or add this variable to it")
                     exit(-1)
 
                 origWeight[var] = val
@@ -266,7 +263,7 @@ class Converter:
 
         with open(outputFile, 'w') as f:
             f.write('p cnf '+str(vars)+' '+str(cls)+' \n')
-            f.write('c ind ')
+            f.write('c p show ')
             for k in self.samplSet:
                 f.write("%d " % k)
             f.write("0\n")
