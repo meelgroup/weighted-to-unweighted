@@ -182,9 +182,11 @@ class Converter:
                 if line[:8] == "c p show": start = 8
                 else: start = 5
                 foundCInd = True
-                for var in line.strip().split()[start:]:
+                for var in line[start:].strip().split():
                     if var == "0":
                         break
+                    assert(int(var) <= vars)
+                    assert(int(var) > 0)
                     self.samplSet[int(var)] = 1
                 continue
 
