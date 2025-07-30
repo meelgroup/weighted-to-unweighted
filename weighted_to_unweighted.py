@@ -161,6 +161,7 @@ class Converter:
         maxvar = 0
         foundCInd = False
         foundHeader = False
+        multiplier = "1"
         for line in lines:
             if len(line) == 0:
                 print("ERROR: The CNF contains an empty line.")
@@ -188,6 +189,10 @@ class Converter:
                     assert(int(var) <= vars)
                     assert(int(var) > 0)
                     self.samplSet[int(var)] = 1
+                continue
+
+            if "c MUST MULTIPLY BY" in line:
+                multiplier = line.strip().split()[4]
                 continue
 
             if line.strip()[0] == 'c' and line.strip()[:4] != 'c t ' and line.strip()[:4] != 'c p ':
@@ -232,7 +237,11 @@ class Converter:
                 else: start = 10
                 fields = line.strip()[start:].split()
                 var = int(fields[0])
-                val = decimal.Decimal(fields[1])
+                if "/" in fields[1]:
+                    f = fields[1].split('/')
+                    val = decimal.Decimal(f[0]) / decimal.Decimal(f[1])
+                else:
+                    val = decimal.Decimal(fields[1])
                 if var < 0:
                     if self.verbose:
                         print("c Skipping line due to literal <0 ", line.strip())
@@ -272,6 +281,7 @@ class Converter:
 
             f.write(origCNFLines)
             f.write(transformCNFLines)
+            f.write('c MUST MULTIPLY BY %s 0\n' % multiplier)
 
         return RetVal(origVars, origCls, vars, cls, div)
 
@@ -303,14 +313,6 @@ if __name__ == '__main__':
         lines = f.readlines()
 
     ret = c.transform(lines, args.outputFile)
-
-    # ret looks like:
-    #    wtVars
-    #    origVars
-    #    origCls
-    #    vars
-    #    totalCount
-    #    eqWtVars
 
     print("Orig vars: %-7d Added vars: %-7d" % (ret.origVars, ret.vars-ret.origVars))
     print("The resulting count you have to divide by: 2**%d" % ret.div)

@@ -1,0 +1,5 @@
+.kdev4
+__py*
+temp
+*.cnf
+out*
