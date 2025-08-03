@@ -21,12 +21,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import sys
-import os
-import math
 import time
 import argparse
 import random
+import re
 
 
 def transform(lines, outfile, perc, ignore_w):
@@ -40,33 +38,37 @@ def transform(lines, outfile, perc, ignore_w):
     numvars = 0
     for line in lines:
         line = line.strip()
+        line = re.sub(r'\s+', ' ', line)
+
         if line == "":
             print("ERROR: Empty line in CNF, that's not DIMACS!")
             exit(-1)
 
-        if line[:6] == "c ind ":
+        if line.startswith("c ind ") or line.startswith("c p show "):
             ind_found = True
-            for v in line.split()[2:]:
+            at = None
+            if line.startswith("c p show "):
+                at = 3
+            else: at = 2
+            for v in line.split()[at:]:
                 if v == "0":
                     break
-
                 ind[int(v)] = 1
             continue
 
-        if line[:2] == "w ":
+        if line.startswith("c p weight"):
             if not ignore_w:
                 print("ERROR: the input CNF already contains weights!")
                 exit(-1)
             continue
 
-        if line[:2] == "p ":
-            #assert line[3:5] == "cnf"
+        if line.startswith("p cnf"):
             header_found = True
             numvars = int(line.split()[2])
             numcls = int(line.split()[3])
             continue
 
-        if line[:1] == "c":
+        if line.startswith("c"):
             cnf.append(line)
             continue
 
@@ -114,7 +116,7 @@ def transform(lines, outfile, perc, ignore_w):
             else:
                 w = random.uniform(0, 1)
 
-            f.write("w %d %3.7f\n" % (v, w))
+            f.write("c p weight %d %3.7f 0\n" % (v, w))
 
 
 if __name__ == '__main__':
