@@ -65,5 +65,5 @@ $ python
 ```
 
 ## Authors
-Kuldeep Meel (meel@comp.nus.edu.sg)
 Mate Soos (soos.mate@gmail.com)
+Kuldeep Meel (meel@comp.nus.edu.sg)
