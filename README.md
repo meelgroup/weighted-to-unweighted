@@ -28,7 +28,6 @@ the formula:
 Now we can convert this weighted formula to an unweighted formula:
 ```
 ./weighted_to_unweighted.py simplified.cnf unweighted.cnf
-```
 Header says vars: 2  maximum var used: 2
 Orig vars: 2       Added vars: 7
 The resulting count you have to divide by: 2**8
