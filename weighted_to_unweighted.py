@@ -150,6 +150,11 @@ class Converter:
         for lit,weight in toadd:
             w[lit] = weight
 
+        for lit,weight in w.items():
+            if weight == decimal.Decimal("0"):
+                print(f"ERROR: Literal {lit} has a (forced) weight of 0, which means the CNF has not been preprocessed by Arjun. Exiting.")
+                exit(-1)
+
         vars = []
         for lit,_ in w.items():
             if abs(lit) not in vars:
@@ -305,10 +310,6 @@ class Converter:
                     print("ERROR: Literal 0 has a weight, but literal 0 is not allowed in CNF")
                     exit(-1)
 
-                if val == 1:
-                    print(f"ERROR: Literal {lit} has a weight of 1, which means this CNF has not been preprocessed by Arjun, or, alternatively, the weight of positive and negative literals don't add up to 1")
-                    exit(-1)
-
                 # already has been declared, error
                 if lit in w:
                     print(f"ERROR: Lit {lit} has TWO weights declared")
@@ -320,6 +321,9 @@ class Converter:
                 if var not in self.sampl_set:
                     print(f"WARNING: Variable {var} has a weight but is not part of the sampling set. Skipping it!")
                     continue
+                if w == decimal.Decimal("0"):
+                    print(f"ERROR: Literal {lit} has a weight of 0, which means the CNF has not been preprocessed by Arjun. Exiting.")
+                    exit(-1)
 
                 w[lit] = val
 
