@@ -8,7 +8,7 @@ weight.
 
 ## How to use
 Let's say we have the following formula in the Model Counting Competition [DIMACS-like
-format](https://mccompetition.org/assets/files/2021/competition2021.pdf):
+format](https://mccompetition.org/assets/files/mccomp_format_25.pdf):
 ```
 $ cat weighted.cnf
 p cnf 2 1
@@ -60,9 +60,11 @@ s SATISFIABLE
 s mc 244
 
 $ python
->>> 244/(2.0**8)
+>>> 244/(2**8)
 0.953125
 ```
+
+Hence, the final approximate weighted count is `0.953125`.
 
 ## Authors
 Mate Soos (soos.mate@gmail.com)
