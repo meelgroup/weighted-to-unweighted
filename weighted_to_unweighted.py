@@ -140,6 +140,48 @@ class Converter:
 
         return weight, prec
 
+    # returns multiplier
+    def clean_up_weights(self, w):
+        toadd = []
+        for lit,weight in w.items():
+            if -lit not in w:
+                toadd.append((-lit, decimal.Decimal("1")-weight))
+
+        for lit,weight in toadd:
+            w[lit] = weight
+
+        vars = []
+        for lit,_ in w.items():
+            if abs(lit) not in vars:
+                vars.append(abs(lit))
+
+        if self.verbose:
+            print(f"found {len(vars)} variables with weights")
+            for var in vars:
+                print(f"Variable {var} has weight {w[var]} and {-var} has weight {w[-var]}")
+
+        # make them all add up to 1
+        w2 = {}
+        mult = decimal.Decimal("1")
+        for var in vars:
+            total = w[var] + w[-var]
+            if total == decimal.Decimal("1"):
+                w2[var] = w[var]
+                w2[-var] = w[-var]
+            else:
+                diff = decimal.Decimal("1")/total
+                mult *= total
+                w2[var] = w[var]*diff
+                w2[-var] = w[-var]*diff
+
+
+        if self.verbose:
+            print(f"After normalization to total 1 weights multiplier is {mult} and weights are:")
+            for var in vars:
+                print(f"Variable {var} has weight {w2[var]} and {-var} has weight {w2[-var]}")
+
+        return mult, w2
+
     #  The code is straightforward chain formula implementation
     def transform(self, lines, outputFile):
         orig_cnf_lines = ''
@@ -198,7 +240,7 @@ class Converter:
                     print(f"ERROR: The CNF already has a multiplier defined: {multiplier}")
                     print("ERROR: Please remove the previous multiplier or the new one")
                     exit(-1)
-                multiplier = line.split()[4]
+                multiplier = self.parse_weight(line.split()[4])
                 continue
 
             if line[0] == 'c' and line[:4] != 'c t ' and line[:4] != 'c p ':
@@ -223,7 +265,7 @@ class Converter:
             continue
 
         if multiplier is None:
-            multiplier = '1'
+            multiplier = decimal.Decimal('1')
 
         if maxvar > vars:
             print(f"ERROR: CNF contains var {maxvar} but header says we only have {vars} vars")
@@ -242,7 +284,7 @@ class Converter:
                 self.sampl_set[i] = 1
 
         # weight parsing and CNF generation
-        orig_weight = {}
+        w = {}
         new_cnf = ''
         for line in lines:
             line = line.strip()
@@ -257,11 +299,7 @@ class Converter:
                     print(f"ERROR: Literal {lit} has a weight but it is not part of the CNF")
                     print(f"ERROR: The CNF only has {vars} variables, but literal {lit} is used")
                     exit(-1)
-                if "/" in fields[1]:
-                    f = fields[1].split('/')
-                    val = decimal.Decimal(f[0]) / decimal.Decimal(f[1])
-                else:
-                    val = decimal.Decimal(fields[1])
+                val = self.parse_weight(fields[1])
 
                 if lit == 0:
                     print("ERROR: Literal 0 has a weight, but literal 0 is not allowed in CNF")
@@ -271,40 +309,37 @@ class Converter:
                     print(f"ERROR: Literal {lit} has a weight of 1, which means this CNF has not been preprocessed by Arjun, or, alternatively, the weight of positive and negative literals don't add up to 1")
                     exit(-1)
 
-                if lit < 0:
-                    if -lit not in orig_weight:
-                        print(f"ERROR: Negative literal {lit} has a weight, but positive literal {-lit} does not")
-                        print("ERROR: Please declare the positive literal's weight first")
-                        exit(-1)
-                    if orig_weight[-lit] == 1-val:
-                        continue
-                    print("ERROR: You cannot declare a weight for a negative literal that's different from the 1-(positive literal's weight) or both weights being 1")
-                    print("ERROR: Lit %d weight declared as %s, but positive literal's weight is %s" % (lit, val, orig_weight[-lit]))
-                    exit(-1)
-                assert (lit > 0)
-                var = abs(lit)
-
                 # already has been declared, error
-                if var in orig_weight:
-                    print(f"ERROR: Variable {var} has TWO weights declared")
-                    print("ERROR: Please ONLY declare each variable's weight ONCE")
+                if lit in w:
+                    print(f"ERROR: Lit {lit} has TWO weights declared")
+                    print("ERROR: Please ONLY declare each literal's weight ONCE")
                     exit(-1)
+                var = abs(lit)
 
                 # Model Counting Competition has these. I can't explain this without going on a rant
                 if var not in self.sampl_set:
                     print(f"WARNING: Variable {var} has a weight but is not part of the sampling set. Skipping it!")
                     continue
 
-                orig_weight[var] = val
-                bit_mult, bit_prec = self.convert_weight(val)
+                w[lit] = val
 
-                if self.verbose:
-                    new_weight = decimal.Decimal(bit_mult)/decimal.Decimal(2**bit_prec)
-                    print(f"var: {var} orig-weight: {val} bit_mult: {bit_mult} bit_prec: {bit_prec} weight as represented in CNF: {new_weight}")
+        mult, w2 = self.clean_up_weights(w)
+        multiplier *= mult
 
-                # we have to encode to CNF the translation
-                lines, vars, num_cls, div = self.encodeCNF(var, bit_mult, bit_prec, vars, num_cls, div)
-                new_cnf += lines
+        for lit,val in w2.items():
+            if lit < 0:
+                # they now add up to 1, so we can skip the negative literals
+                continue
+            var = abs(lit)
+            bit_mult, bit_prec = self.convert_weight(val)
+
+            if self.verbose:
+                new_weight = decimal.Decimal(bit_mult)/decimal.Decimal(2**bit_prec)
+                print(f"var: {var} orig-weight: {val} bit_mult: {bit_mult} bit_prec: {bit_prec} weight as represented in CNF: {new_weight}")
+
+            # we have to encode to CNF the translation
+            lines, vars, num_cls, div = self.encodeCNF(var, bit_mult, bit_prec, vars, num_cls, div)
+            new_cnf += lines
 
         with open(outputFile, 'w') as f:
             f.write('p cnf '+str(vars)+' '+str(num_cls)+' \n')
@@ -318,6 +353,15 @@ class Converter:
             f.write('c MUST MULTIPLY BY %s 0\n' % multiplier)
 
         return RetVal(origVars, origCls, vars, num_cls, div)
+
+    def parse_weight(self, dat):
+        if "/" in dat:
+            f = dat.split('/')
+            val = decimal.Decimal(f[0]) / decimal.Decimal(f[1])
+        else:
+            val = decimal.Decimal(dat)
+
+        return val
 
 
 # main function
