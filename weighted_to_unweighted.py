@@ -113,7 +113,7 @@ class Converter:
         return writeLines, vars, num_cls, div+bit_prec
 
     # return (weight:bits ratio, number of bits needed to represent the weight)
-    def convert_weight(self, init_w):
+    def quantize_weight(self, init_w):
         assert type(init_w) == decimal.Decimal
 
         assert self.precision > 1, "Precision must be at least 2"
@@ -361,7 +361,7 @@ class Converter:
                 # they now add up to 1, so we can skip the negative literals
                 continue
             var = abs(lit)
-            bit_mult, bit_prec = self.convert_weight(val)
+            bit_mult, bit_prec = self.quantize_weight(val)
 
             if self.verbose:
                 new_weight = decimal.Decimal(bit_mult)/decimal.Decimal(2**bit_prec)
