@@ -339,7 +339,7 @@ class Converter:
                 # already has been declared, error
                 if lit in w:
                     print(f"ERROR: Lit {lit} has TWO weights declared")
-                    print("ERROR: Please ONLY declare each literal's weight ONCE")
+                    print("ERROR: You must ONLY declare each literal's weight ONCE")
                     exit(-1)
                 var = abs(lit)
 
