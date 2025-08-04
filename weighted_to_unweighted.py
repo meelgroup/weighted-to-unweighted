@@ -140,35 +140,23 @@ class Converter:
 
         return weight, prec
 
-    # returns multiplier
-    def clean_up_weights(self, w):
-        toadd = []
-        for lit,weight in w.items():
-            if -lit not in w:
-                toadd.append((-lit, decimal.Decimal("1")-weight))
+    def delete_1_1_weights(self, w, vars):
+        # delete 1/1 weights
+        vars2 = {}
+        for var in vars.keys():
+            if w[var] == decimal.Decimal("1") and w[-var] == decimal.Decimal("1"):
+                del w[var]
+                del w[-var]
+            else:
+                vars2[var] = 1
+        return vars2, w
 
-        for lit,weight in toadd:
-            w[lit] = weight
 
-        for lit,weight in w.items():
-            if weight == decimal.Decimal("0"):
-                print(f"ERROR: Literal {lit} has a (forced) weight of 0, which means the CNF has not been preprocessed by Arjun. Exiting.")
-                exit(-1)
-
-        vars = []
-        for lit,_ in w.items():
-            if abs(lit) not in vars:
-                vars.append(abs(lit))
-
-        if self.verbose:
-            print(f"found {len(vars)} variables with weights")
-            for var in vars:
-                print(f"Variable {var} has weight {w[var]} and {-var} has weight {w[-var]}")
-
-        # make them all add up to 1
+    # make them all add up to 1
+    def normalize_weights(self, vars, w):
         w2 = {}
         mult = decimal.Decimal("1")
-        for var in vars:
+        for var in vars.keys():
             total = w[var] + w[-var]
             if total == decimal.Decimal("1"):
                 w2[var] = w[var]
@@ -179,13 +167,51 @@ class Converter:
                 w2[var] = w[var]*diff
                 w2[-var] = w[-var]*diff
 
+        return w2, mult
+
+
+    def check_all_weights_non_zero_or_negativer(self, w):
+        for lit,weight in w.items():
+            if weight == decimal.Decimal("0"):
+                print(f"ERROR: Literal {lit} has a (forced) weight of 0, which means the CNF has not been preprocessed by Arjun. Exiting.")
+                exit(-1)
+            if weight < decimal.Decimal("0"):
+                print(f"ERROR: Literal {lit} has a (forced) weight that's negative: {weight}. This is not allowed.")
+                exit(-1)
+
+
+    # returns multiplier
+    def clean_up_weights(self, w):
+        # make sure both var and -var are present
+        toadd = []
+        for lit,weight in w.items():
+            if -lit not in w:
+                toadd.append((-lit, decimal.Decimal("1")-weight))
+        for lit,weight in toadd:
+            w[lit] = weight
+        del toadd
+
+        self.check_all_weights_non_zero_or_negativer(w)
+
+        vars = {}
+        for lit,_ in w.items():
+            vars[abs(lit)] = 1
+
+        if self.verbose:
+            print(f"found {len(vars)} variables with weights")
+            for var in vars.keys():
+                print(f"Variable {var} has weight {w[var]} and {-var} has weight {w[-var]}")
+
+        vars, w = self.delete_1_1_weights(w, vars)
+        w, mult = self.normalize_weights(vars, w)
+        vars, w = self.delete_1_1_weights(w, vars)
 
         if self.verbose:
             print(f"After normalization to total 1 weights multiplier is {mult} and weights are:")
             for var in vars:
-                print(f"Variable {var} has weight {w2[var]} and {-var} has weight {w2[-var]}")
+                print(f"Variable {var} has weight {w[var]} and {-var} has weight {w[-var]}")
 
-        return mult, w2
+        return mult, w
 
     #  The code is straightforward chain formula implementation
     def transform(self, lines, outputFile):
