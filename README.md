@@ -2,7 +2,7 @@
 This tool makes an weighted formula into and unweighted formula, where it can
 later be counted or sampled using unweighted counters/samplers. The way this
 tool works is explained in detail in [this
-paper](https://www.comp.nus.edu.sg/~meel/Papers/ijcai15.pdf). Essentially, the
+paper](https://www.cs.toronto.edu/~meel/Papers/ijcai15.pdf). Essentially, the
 variables with non-default weights are attached a formula that approximates the
 weight.
 
